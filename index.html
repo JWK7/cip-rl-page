@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bellman Meets Lyapunov</title>
+<meta name="description" content="Unsupervised Reinforcement Learning Through Mastering Chaos. Forward CIP: an RL-native formulation of Controllable Information Production. Anonymous project page, under review at ICLR 2027.">
+<meta name="robots" content="noindex">
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']],
+         macros: { fx: "f_{x_t}", ol: "{\\mathrm{ol}}", I: "\\mathbf{I}", sg: "\\mathrm{sg}" } },
+  svg: { fontCache: 'global' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js"></script>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f6f7f9;
+  --ink: #16202b;
+  --ink-2: #4a5462;
+  --ink-3: #78828f;
+  --line: #dde2e8;
+  --accent: #0e7c86;
+  --accent-soft: #e2f2f3;
+  --ours: #2bb673;
+  --ours-soft: #e3f5ec;
+  --base-soft: #e9ecf0;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 1.05rem; line-height: 1.6; }
+a { color: var(--accent); }
+img, video { max-width: 100%; height: auto; display: block; }
+[hidden] { display: none !important; }
+mjx-container { overflow-x: auto; overflow-y: hidden; }
+h1, h2, h3, h4 { line-height: 1.2; margin: 0; }
+p { margin: 0; }
+p + p { margin-top: 1em; }
+.wrap { width: min(100% - 2rem, 1000px); margin-inline: auto; }
+.measure { max-width: 72ch; }
+
+/* ---------- Hero ---------- */
+.hero { text-align: center; padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(1.5rem, 4vw, 2.5rem); }
+.eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.hero h1 { font-size: clamp(1.8rem, 4.5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; margin-top: 0.7rem; }
+.hero h1 .sub { display: block; font-size: 0.6em; font-weight: 500; color: var(--ink-2); margin-top: 0.6rem; }
+.authors { margin-top: 1.4rem; font-size: 1.05rem; }
+.authors .note { color: var(--ink-3); font-size: 0.92rem; margin-top: 0.25rem; }
+.cta { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1.5rem; }
+.btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: 0.92rem; font-weight: 600; padding: 0.6rem 1.15rem; border-radius: 999px;
+  text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--bg-alt);
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.btn.primary:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+/* ---------- Hero video ---------- */
+.showcase { padding-bottom: clamp(2rem, 5vw, 3.5rem); }
+.switch { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; background: var(--bg-alt); border: 1px solid var(--line); margin-bottom: 0.9rem; }
+.switch button {
+  font: inherit; font-size: 0.85rem; font-weight: 600; background: transparent; color: var(--ink-2);
+  border: 0; border-radius: 999px; padding: 0.4rem 1.1rem; cursor: pointer;
+}
+.switch button[aria-selected="true"] { background: var(--ink); color: #fff; }
+.video-frame { border-radius: 10px; overflow: hidden; background: #0b111b; border: 1px solid var(--line); }
+.video-frame video { width: 100%; aspect-ratio: 2 / 1; object-fit: cover; }
+.showcase .center { text-align: center; }
+.caption { font-size: 0.93rem; line-height: 1.55; color: var(--ink-2); margin-top: 0.8rem; }
+.caption strong { color: var(--ink); }
+.caption .num { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin-right: 0.5rem; }
+
+/* ---------- Sections ---------- */
+section { padding-block: clamp(2rem, 5vw, 3.5rem); border-top: 1px solid var(--line); }
+section h2 { font-size: clamp(1.4rem, 2.6vw, 1.85rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1.2rem; }
+section h3 { font-size: 1.15rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.6rem; }
+.abstract { font-size: 1.1rem; }
+.q { display: inline-block; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0.15rem 0.45rem; margin-bottom: 0.5rem; }
+
+/* ---------- Figures ---------- */
+figure { margin: 0; }
+.strips { display: grid; gap: 0.6rem; }
+.strip { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+.strip .label { position: absolute; left: 0.6rem; top: 0.6rem; font-family: var(--mono); font-size: 0.72rem; padding: 0.25rem 0.55rem; border-radius: 3px; }
+.strip.ours .label { background: var(--ours); color: #fff; }
+.strip.base .label { background: var(--base-soft); color: var(--ink); }
+.figbox { background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; padding: clamp(1rem, 3vw, 1.75rem); }
+.figbox img { margin-inline: auto; }
+.figbox.white { background: #fff; }
+.two-col { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem; align-items: start; margin-top: 1.5rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.25rem; }
+.clip { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: #0b111b; }
+.clip video { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+.clip .tag { position: absolute; left: 0.6rem; top: 0.6rem; font-family: var(--mono); font-size: 0.7rem; background: var(--ours); color: #fff; padding: 0.25rem 0.5rem; border-radius: 3px; }
+
+/* ---------- Math cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.card { background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; overflow-x: auto; }
+.card.wide { grid-column: 1 / -1; }
+.card .kind { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.card .kind b { color: var(--ink); }
+.card p { font-size: 0.97rem; margin-top: 0.5rem; }
+.card .eq { margin-top: 0.6rem; }
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow-x: auto; margin-top: 1.25rem; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; min-width: 600px; }
+th, td { padding: 0.55rem 0.8rem; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--ink-2); font-size: 0.8rem; background: var(--bg-alt); }
+th.group { text-align: center; color: var(--ink); }
+th:first-child, td:first-child { text-align: left; }
+tbody tr:last-child td { border-bottom: none; }
+tr.ours td { background: var(--ours-soft); }
+tr.ours td:first-child { font-weight: 700; }
+tr.oracle td { border-top: 1px solid var(--line); color: var(--ink-2); font-style: italic; }
+td b { font-weight: 700; }
+td .pm { color: var(--ink-3); font-size: 0.85em; }
+
+/* ---------- Misc ---------- */
+.limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-top: 1.25rem; }
+.limits div { border-top: 2px solid var(--line); padding-top: 0.7rem; font-size: 0.95rem; }
+.limits h4 { font-size: 1rem; margin-bottom: 0.35rem; }
+ol.contrib { padding-left: 1.3rem; margin: 0.5rem 0 0; display: grid; gap: 0.5rem; }
+footer { border-top: 1px solid var(--line); padding-block: 1.5rem 2.5rem; font-size: 0.85rem; color: var(--ink-3); }
+
+@media (max-width: 760px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  body { font-size: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<main>
+<!-- ================= HERO ================= -->
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Under review at ICLR 2027</div>
+    <h1>Bellman Meets Lyapunov
+      <span class="sub">Unsupervised Reinforcement Learning Through Mastering Chaos</span>
+    </h1>
+    <p class="authors">Anonymous Authors</p>
+    <p class="authors note">Paper under double-blind review</p>
+    <div class="cta">
+      <a class="btn primary" href="https://anonymous.4open.science/r/cip_rl-23B3/README.md">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3 1 8l4.5 5 1-1L2.9 8l3.6-4-1-1zm5 0-1 1 3.6 4-3.6 4 1 1L15 8l-4.5-5z"/></svg>
+        Code (anonymized)
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= HERO VIDEO ================= -->
+<div class="showcase">
+  <div class="wrap">
+    <div class="center">
+      <div class="switch" role="tablist" aria-label="Environment">
+        <button type="button" role="tab" aria-selected="true" data-env="walker">Walker</button>
+        <button type="button" role="tab" aria-selected="false" data-env="hopper">Hopper</button>
+      </div>
+    </div>
+    <div class="video-frame">
+      <video id="v-walker" autoplay muted loop playsinline preload="auto" src="assets/videos/walker_6way_ppo.mp4"></video>
+      <video id="v-hopper" muted loop playsinline preload="auto" src="assets/videos/hopper_6way_ppo.mp4" hidden></video>
+    </div>
+    <p class="caption"><strong>Reward simplification on Walker and Hopper.</strong> Every policy is fine-tuned on the same minimal forward-velocity reward. Ours (green) pre-trains with F-CIP and keeps maximizing it during fine-tuning, yielding upright running and hopping. The velocity reward alone and the four intrinsic-motivation baselines (ICM, APT, DIAYN, SMM) collapse to scooting along the ground. No policy ever sees the hand-designed oracle reward.</p>
+  </div>
+</div>
+
+<!-- ================= ABSTRACT ================= -->
+<section id="abstract">
+  <div class="wrap">
+    <h2>Abstract</h2>
+    <div class="measure abstract">
+      <p>Reinforcement learning (RL) is a powerful paradigm for training agents, yet its success rests on domain expertise of human engineers who design informative reward signals for every new task. Unsupervised RL aims to replace this engineering with intrinsic motivation (IM): reward signals that emerge from the agent-environment interaction itself. Existing IM objectives, however, involve the selection of information variables, which re-introduces domain expertise the field has sought to eliminate. We introduce <strong>Forward CIP</strong> (F-CIP), an RL-native formulation of the Controllable Information Production (CIP) objective, which is defined by the system's dynamics alone and requires no such selection. We prove that F-CIP is compatible with RL and demonstrate its effectiveness with existing algorithms. Training agents with F-CIP results in unsupervised discovery of primitive behaviors such as balancing and maintaining controllability, which are essential for more complex robot behaviors. Paired with a minimal forward-velocity reward, our method produces coordinated gaits such as hopping and running which otherwise require reward engineering to learn.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FIGURE 1 ================= -->
+<section id="figure1">
+  <div class="wrap">
+    <figure>
+      <div class="strips">
+        <div class="strip ours"><span class="label">Walker — Ours: F-CIP and velocity</span><img src="assets/figures/walker-run-cip-and-vel.png" alt="Film strip of the walker running upright under F-CIP plus velocity reward" loading="lazy"></div>
+        <div class="strip base"><span class="label">Walker — Baseline: velocity only</span><img src="assets/figures/walker-scoot-onlyvel.png" alt="Film strip of the walker scooting along the ground under the velocity-only reward" loading="lazy"></div>
+        <div class="strip ours"><span class="label">Hopper — Ours: F-CIP and velocity</span><img src="assets/figures/hopper-hop-cip-and-vel.png" alt="Film strip of the hopper hopping upright under F-CIP plus velocity reward" loading="lazy"></div>
+        <div class="strip base"><span class="label">Hopper — Baseline: velocity only</span><img src="assets/figures/hopper-scoot-onlyvel.png" alt="Film strip of the hopper bouncing along the ground under the velocity-only reward" loading="lazy"></div>
+      </div>
+      <figcaption class="caption"><span class="num">Figure 1</span><strong>Emergent locomotion strategies on walker and hopper.</strong> Training agents with F-CIP and a forward velocity reward yields upright running and hopping (green), whereas the velocity reward alone collapses to bouncing and scooting along the ground (gray).</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= OVERVIEW ================= -->
+<section id="overview">
+  <div class="wrap">
+    <h2>Why CIP needed a forward-in-time form</h2>
+    <div class="measure">
+      <p>The <em>edge of chaos</em> (EOC) is the boundary between stable and chaotic dynamics: states that are maximally unstable yet still controllable, like the upright stance of a humanoid. Controllable Information Production (CIP) makes this principle quantitative. It is the sum of positive open-loop Lyapunov exponents of the agent-environment system, so it rewards occupying the most dynamically sensitive regions rather than covering the state space uniformly.</p>
+      <p>CIP was previously optimizable only by sampling-based MPC planners. RL requires (i) a reward emitted incrementally during the forward rollout and (ii) a reward that is Markovian in the agent's state. CIP in its original form violates both: it is computed by a backward-in-time Riccati recursion whose increment at each step depends on the entire future trajectory.</p>
+      <p><strong>Forward CIP (F-CIP)</strong> is a forward-in-time incremental decomposition of CIP. It exposes an instantaneous per-step reward, and it identifies an information matrix \(S_t\) as a sufficient statistic of the past, so augmenting the state with \(S_t\) exactly restores the Markov property. The forward iteration converges to the same quantity as the backward recursion, so no approximation is introduced.</p>
+      <h3>Contributions</h3>
+      <ol class="contrib">
+        <li><strong>Theory.</strong> A forward-in-time characterization of CIP as a sum of per-step increments (Lemma 1).</li>
+        <li><strong>Algorithm.</strong> A numerically stable log-domain iteration exposing a per-step reward and an information-matrix memory \(S_t\), casting CIP maximization as a standard RL problem.</li>
+        <li><strong>Experiments.</strong> The first RL agent trained directly on the CIP objective. Maximizing it drives the unsupervised discovery of standing behaviors, while combining it with a downstream objective yields coherent locomotion strategies such as hopping and running.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ================= METHOD ================= -->
+<section id="method">
+  <div class="wrap">
+    <h2>Method</h2>
+    <figure>
+      <div class="figbox">
+        <img src="assets/figures/method.svg" alt="Schematic of the method: a perception-action loop between environment and agent, and the Forward CIP block containing the memory update and the reward." style="width: min(100%, 720px);">
+      </div>
+      <figcaption class="caption"><span class="num">Figure 2</span><strong>Schematic of our method.</strong> The environment returns the Jacobian \(\fx\), which is used to emit reward \(r_t\) and then update the memory \(S_t\). The augmented state \(z_t = (x_t, S_t)\) is passed to both the policy and the value function.</figcaption>
+    </figure>
+
+    <div class="measure" style="margin-top: 2rem;">
+      <p>CIP is the positive Lyapunov exponent sum \(\Lambda^{+}\) of the open-loop system \(f^{\ol}(x) = f(x, \sg(\pi(x)))\). Our key insight comes from the control-estimation duality: the backward Riccati recursion that defines CIP is a control-side object, and its estimation-side dual is a forward-in-time covariance iteration whose increments depend only on the current Jacobian \(\fx := \partial f/\partial x\,|_{(x_t,u_t)}\) and a propagated information matrix \(S_t\). Propagating the covariance in the \(\ln\det\) domain is numerically stable and exposes the per-step reward.</p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="kind"><b>Reward</b> · Equation 6</div>
+        <div class="eq">\[ r(x_t,u_t,S_t) := \ln\det\!\big(S_t + \fx^{\top}\fx\big) \]</div>
+        <p>The reward carries the memory \(S_t\) in its signature, so it is not Markovian in \(x_t\) alone.</p>
+      </div>
+      <div class="card">
+        <div class="kind"><b>Memory</b> · Equation 5</div>
+        <div class="eq">\[ S_{t+1} = \I - \fx\big(S_t + \fx^{\top}\fx\big)^{-1}\fx^{\top}, \quad S_0 = \I \]</div>
+        <p>Bounded as \(0 \preceq S_t \preceq \I\), so it stays well-conditioned as a network input. Only its \(n(n+1)/2\) unique entries are carried.</p>
+      </div>
+      <div class="card wide">
+        <div class="kind"><b>Theorem 4</b> · Exact decomposition of CIP</div>
+        <p>With \(z_t := (x_t, S_t)\), the tuple \((\mathcal{Z}, \mathcal{U}, p_z, r)\) is a Markov decision process (Proposition 3), its undiscounted return telescopes to \(\ln\det\Sigma_T\), and</p>
+        <div class="eq">\[ \lim_{T\to\infty}\frac{1}{2T\Delta t}\sum_{t=0}^{T-1} r(z_t,u_t) = \Lambda^{+}(f^{\ol}) = \mathrm{CIP}. \]</div>
+        <p><em>Maximizing the average reward of this MDP is therefore equivalent to maximizing CIP.</em> In practice we optimize the discounted proxy with \(\gamma\) close to 1 using standard PPO, with Jacobians provided by MuJoCo-MJX.</p>
+      </div>
+    </div>
+
+    <div class="measure" style="margin-top: 1.75rem;">
+      <h3>Training with an extrinsic reward</h3>
+      <p>For locomotion, the agent is first pre-trained for \(T_{\mathrm{pre}}\) iterations on the F-CIP reward alone. It is then adapted for \(T_{\mathrm{adapt}}\) iterations on the combined objective \(\hat r_t = r_t + \beta v_t\), where \(v_t\) is forward velocity and \(\beta\) warms up from zero to \(\beta_{\max}\). The hand-designed oracle reward is never optimized; it is used only at test time to evaluate task return.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= EXPERIMENTS ================= -->
+<section id="experiments">
+  <div class="wrap">
+    <h2>Experiments</h2>
+    <div class="measure">
+      <p>Our experiments address three questions. <strong>Q1.</strong> Does a learned value function converge to the true \(\Lambda^{+}\) on a known attractor? <strong>Q2.</strong> What behaviors are induced by maximizing F-CIP, with no extrinsic reward? <strong>Q3.</strong> Can F-CIP simplify reward engineering on locomotion tasks?</p>
+    </div>
+
+    <!-- Q1 -->
+    <div class="two-col">
+      <div>
+        <span class="q">Q1 · Λ⁺ estimation</span>
+        <h3 style="margin-top: 0.4rem;">The learned value function recovers the true \(\Lambda^{+}\) of the Lorenz attractor</h3>
+        <p>We validate our learned incremental estimator on the Lorenz attractor, whose \(\Lambda^{+}\) is known to be 0.906 nats/s. The estimate is extracted as \(\frac{1-\gamma}{2\Delta t}\mathbb{E}[V_\phi(z_t)]\), where \(V_\phi\) is learned by TD on trajectories sampled from the attractor. The estimator converges to the known value for every discount factor tested, and larger \(\gamma\) converges faster. The value function is largest near the splitting point between the two wings, where the local dynamics are most unstable, so it can be read as a local indicator of the "chaos-to-go".</p>
+      </div>
+      <figure>
+        <div class="figbox white"><img src="assets/figures/lorenz.png" alt="Estimated Lyapunov exponent sum on the Lorenz attractor versus training iteration for discount factors from 0 to 0.9, converging to the true value of 0.9056 nats/s; inset shows the attractor colored by the learned value." loading="lazy"></div>
+        <figcaption class="caption"><span class="num">Figure 3</span><strong>Learning \(\Lambda^{+}\) on the Lorenz attractor.</strong> (a) convergence of the learned value function to the known \(\Lambda^{+}\) for \(\gamma\in[0.0, 0.9]\); (b) the attractor colored by the learned \(V_\phi(z)\) for \(\gamma = 0.9\), with bright green indicating higher value.</figcaption>
+      </figure>
+    </div>
+
+    <!-- Q2 -->
+    <div style="margin-top: 3rem;">
+      <span class="q">Q2 · Emergent behaviors</span>
+      <h3 style="margin-top: 0.4rem;">Maximizing F-CIP alone produces swing-up and upright stabilization</h3>
+      <div class="measure">
+        <p>With no extrinsic reward, F-CIP alone drives agents from a hanging pose to an upright stand. Table 1 reports the normalized extremity height (pendulum tip or gibbon head) over the final 10% of the episode, averaged over 10 seeds, on cart pole (CP), double pendulum (DP), triple pendulum (TP), and gibbon (G). F-CIP is the only objective that reliably reaches the upright configuration on all four systems. An average-reward PPO variant (APPO) matches the reliability of standard PPO.</p>
+      </div>
+      <div class="grid-2">
+        <div class="clip">
+          <span class="tag">Hopper · F-CIP only</span>
+          <video autoplay muted loop playsinline preload="metadata" src="assets/videos/hopper_cip.mp4"></video>
+        </div>
+        <div class="clip">
+          <span class="tag">Walker · F-CIP only</span>
+          <video autoplay muted loop playsinline preload="metadata" src="assets/videos/walker_cip.mp4"></video>
+        </div>
+      </div>
+      <p class="caption">Hopper and walker trained on the F-CIP reward alone, with no extrinsic reward. The agents learn to stand and balance without any task signal.</p>
+      <figure style="margin-top: 1.5rem;">
+        <div class="strip ours"><span class="label">Gibbon — Ours: F-CIP only, no extrinsic reward</span><img src="assets/figures/gibbon-standup.jpg" alt="Time-lapse of the gibbon swinging up from a hanging pose to an upright stand" loading="lazy"></div>
+        <figcaption class="caption"><span class="num">Figure 4</span><strong>Unsupervised standing up behavior via F-CIP maximization.</strong> Achieved through maximization of F-CIP alone without any extrinsic reward.</figcaption>
+      </figure>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th></th><th class="group" colspan="6">Intrinsic Motivation Objective</th></tr>
+            <tr><th>System</th><th>F-CIP (PPO)</th><th>F-CIP (APPO)</th><th>DIAYN</th><th>SMM</th><th>ICM</th><th>APT</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>CP</td><td><b>0.99</b></td><td><b>0.99</b></td><td>0.26</td><td>0.68</td><td>0.07</td><td>0.64</td></tr>
+            <tr><td>DP</td><td><b>0.99</b></td><td><b>0.99</b></td><td>0.44</td><td>0.06</td><td>0.05</td><td>0.25</td></tr>
+            <tr><td>TP</td><td><b>0.99</b></td><td><b>0.99</b></td><td>0.38</td><td>0.14</td><td>0.09</td><td>0.48</td></tr>
+            <tr><td>G</td><td><b>0.98</b></td><td><b>0.99</b></td><td>0.51</td><td>0.52</td><td>0.05</td><td>0.41</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption"><span class="num">Table 1</span><strong>Comparison of IM objectives on pendulum environments.</strong> Mean extremity height over the final 10% of the episode, averaged over 10 random seeds, min-max normalized so that 0.0 is the initial hanging configuration and 1.0 is the fully upright pose. Skill-based baselines (DIAYN, SMM) are evaluated on their best skill.</p>
+    </div>
+
+    <!-- Q3 -->
+    <div style="margin-top: 3rem;">
+      <span class="q">Q3 · Reward simplification</span>
+      <h3 style="margin-top: 0.4rem;">F-CIP supplies the postural inductive bias that reward engineers otherwise encode by hand</h3>
+      <div class="measure">
+        <p>Maximizing forward velocity alone describes the desired outcome but imposes no bias on how to achieve it, so RL agents collapse to "scooting" along the ground. The standard remedy is a hand-designed posture reward that requires knowledge of the robot. We show that F-CIP replaces that engineering: all baselines hold a low torso height and accrue near-zero task return, while our method learns to hop and run and recovers the majority of the oracle's task return despite never observing that reward.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th></th><th class="group" colspan="3">Hopper</th><th class="group" colspan="3">Walker</th></tr>
+            <tr><th>Method</th><th>Task Return ↑</th><th>Fwd. Vel. (m/s)</th><th>Height (m)</th><th>Task Return ↑</th><th>Fwd. Vel. (m/s)</th><th>Height (m)</th></tr>
+          </thead>
+          <tbody>
+            <tr class="ours"><td>Ours</td><td><b>0.39</b> <span class="pm">± 0.38*</span></td><td>1.47 <span class="pm">± 0.33</span></td><td>0.73 <span class="pm">± 0.15</span></td><td><b>0.60</b> <span class="pm">± 0.03</span></td><td>4.53 <span class="pm">± 0.11</span></td><td>1.19 <span class="pm">± 0.04</span></td></tr>
+            <tr><td>Fwd. Vel. only</td><td>0.00 <span class="pm">± 0.00</span></td><td>0.77 <span class="pm">± 0.16</span></td><td>0.33 <span class="pm">± 0.03</span></td><td>0.10 <span class="pm">± 0.04</span></td><td>4.41 <span class="pm">± 0.22</span></td><td>0.46 <span class="pm">± 0.10</span></td></tr>
+            <tr><td>ICM<sup>†</sup></td><td>0.00 <span class="pm">± 0.00</span></td><td>1.52 <span class="pm">± 0.55</span></td><td>0.22 <span class="pm">± 0.05</span></td><td>0.09 <span class="pm">± 0.04</span></td><td>3.85 <span class="pm">± 0.41</span></td><td>0.48 <span class="pm">± 0.12</span></td></tr>
+            <tr><td>APT<sup>†</sup></td><td>0.00 <span class="pm">± 0.00</span></td><td>1.63 <span class="pm">± 0.29</span></td><td>0.23 <span class="pm">± 0.07</span></td><td>0.10 <span class="pm">± 0.05</span></td><td>3.38 <span class="pm">± 1.14</span></td><td>0.47 <span class="pm">± 0.14</span></td></tr>
+            <tr><td>DIAYN<sup>†</sup></td><td>0.00 <span class="pm">± 0.00</span></td><td>1.22 <span class="pm">± 0.17</span></td><td>0.29 <span class="pm">± 0.12</span></td><td>0.08 <span class="pm">± 0.03</span></td><td>3.29 <span class="pm">± 0.33</span></td><td>0.42 <span class="pm">± 0.09</span></td></tr>
+            <tr><td>SMM<sup>†</sup></td><td>0.00 <span class="pm">± 0.00</span></td><td>1.12 <span class="pm">± 0.10</span></td><td>0.23 <span class="pm">± 0.04</span></td><td>0.09 <span class="pm">± 0.04</span></td><td>4.53 <span class="pm">± 0.51</span></td><td>0.45 <span class="pm">± 0.10</span></td></tr>
+            <tr class="oracle"><td>Full reward (oracle)</td><td>0.52 <span class="pm">± 0.12</span></td><td>1.04 <span class="pm">± 0.23</span></td><td>0.79 <span class="pm">± 0.09</span></td><td>0.78 <span class="pm">± 0.04</span></td><td>6.07 <span class="pm">± 0.33</span></td><td>1.13 <span class="pm">± 0.02</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption"><span class="num">Table 2</span><strong>Reward simplification on Hopper and Walker.</strong> Mean and standard deviation over 10 evaluations of the trained policies. Ours pre-trains with F-CIP alone, then fine-tunes on the forward-velocity reward while continuing to maximize F-CIP. Task return is measured with the full hand-designed reward; <strong>bold</strong> marks the best among the methods. Forward velocity and torso height are diagnostics of the emergent gait. Each pretraining baseline (†) maximizes its intrinsic objective during pretraining and then replaces it with the velocity reward during fine-tuning. The large variance (*) on hopper is an artifact of the oracle metric: all 10 seeds hop upright, but some hop at heights outside the oracle's narrow height band and score zero. Our hopping policy travels about 40% faster than the oracle policy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DISCUSSION ================= -->
+<section id="discussion">
+  <div class="wrap">
+    <h2>Discussion</h2>
+    <div class="measure">
+      <p>Intrinsic motivation need not be confined to an exploration bonus. Coverage and surprise objectives are inherently geared toward exploration, so they serve almost exclusively as auxiliary signals. CIP targets edge-of-chaos states directly and produces useful behavior in both roles: as a primary objective it discovers self-righting with no external signal, and as an auxiliary term it supplies an inductive bias toward controllable instability that reward engineers otherwise encode by hand.</p>
+      <h3>Limitations</h3>
+    </div>
+    <div class="limits">
+      <div>
+        <h4>Analytical Jacobians</h4>
+        <p>The reward requires Jacobians of the dynamics. Differentiable simulators such as MuJoCo-MJX provide these efficiently, but physical reality offers none, so sim-to-real transfer will need either training entirely in simulation or Jacobians learned from data.</p>
+      </div>
+      <div>
+        <h4>Memory grows quadratically</h4>
+        <p>The memory matrix \(S_t\) grows quadratically in the state dimension, and every parallel environment must carry its own copy. Scaling to high-dimensional robots will require a compressed representation.</p>
+      </div>
+      <div>
+        <h4>Degenerate maximizers</h4>
+        <p>Like the noisy-TV problem of curiosity, CIP can be maximized by spinning freely or thrashing. Joint damping removed these optima in our environments, but a principled objective-level resolution remains open.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    Anonymous project page for a submission under double-blind review at ICLR 2027. Code: <a href="https://anonymous.4open.science/r/cip_rl-23B3/README.md">anonymous.4open.science/r/cip_rl-23B3</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var buttons = document.querySelectorAll('.switch button');
+  var videos = { walker: document.getElementById('v-walker'), hopper: document.getElementById('v-hopper') };
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var env = btn.dataset.env;
+      buttons.forEach(function (b) { b.setAttribute('aria-selected', String(b === btn)); });
+      Object.keys(videos).forEach(function (k) {
+        var v = videos[k];
+        if (k === env) { v.hidden = false; v.currentTime = 0; v.play().catch(function () {}); }
+        else { v.hidden = true; v.pause(); }
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
