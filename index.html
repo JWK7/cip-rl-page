@@ -42,7 +42,8 @@ h1, h2, h3, h4 { line-height: 1.2; margin: 0; }
 p { margin: 0; }
 p + p { margin-top: 1em; }
 .wrap { width: min(100% - 2rem, 1000px); margin-inline: auto; }
-.measure { max-width: 72ch; }
+.measure { max-width: 72ch; margin-inline: auto; }
+.measure p, .measure li, .limits p { text-align: justify; text-justify: inter-word; -webkit-hyphens: auto; hyphens: auto; }
 
 /* ---------- Hero ---------- */
 .hero { text-align: center; padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(1.5rem, 4vw, 2.5rem); }
@@ -79,7 +80,7 @@ p + p { margin-top: 1em; }
 
 /* ---------- Sections ---------- */
 section { padding-block: clamp(2rem, 5vw, 3.5rem); border-top: 1px solid var(--line); }
-section h2 { font-size: clamp(1.4rem, 2.6vw, 1.85rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1.2rem; }
+section h2 { font-size: clamp(1.4rem, 2.6vw, 1.85rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 1.2rem; text-align: center; }
 section h3 { font-size: 1.15rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.6rem; }
 .abstract { font-size: 1.1rem; }
 .q { display: inline-block; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 0.15rem 0.45rem; margin-bottom: 0.5rem; }
@@ -284,9 +285,9 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem 2.5rem; font-s
 
     <!-- Q2 -->
     <div style="margin-top: 3rem;">
-      <span class="q">Q2 · Emergent behaviors</span>
-      <h3 style="margin-top: 0.4rem;">Maximizing F-CIP alone produces swing-up and upright stabilization</h3>
       <div class="measure">
+        <span class="q">Q2 · Emergent behaviors</span>
+        <h3 style="margin-top: 0.4rem;">Maximizing F-CIP alone produces swing-up and upright stabilization</h3>
         <p>With no extrinsic reward, F-CIP alone drives agents from a hanging pose to an upright stand. Table 1 reports the normalized extremity height (pendulum tip or gibbon head) over the final 10% of the episode, averaged over 10 seeds, on cart pole (CP), double pendulum (DP), triple pendulum (TP), and gibbon (G). F-CIP is the only objective that reliably reaches the upright configuration on all four systems. An average-reward PPO variant (APPO) matches the reliability of standard PPO.</p>
       </div>
       <div class="grid-2">
@@ -323,9 +324,9 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem 2.5rem; font-s
 
     <!-- Q3 -->
     <div style="margin-top: 3rem;">
-      <span class="q">Q3 · Reward simplification</span>
-      <h3 style="margin-top: 0.4rem;">F-CIP supplies the postural inductive bias that reward engineers otherwise encode by hand</h3>
       <div class="measure">
+        <span class="q">Q3 · Reward simplification</span>
+        <h3 style="margin-top: 0.4rem;">F-CIP supplies the postural inductive bias that reward engineers otherwise encode by hand</h3>
         <p>Maximizing forward velocity alone describes the desired outcome but imposes no bias on how to achieve it, so RL agents collapse to "scooting" along the ground. The standard remedy is a hand-designed posture reward that requires knowledge of the robot. We show that F-CIP replaces that engineering: all baselines hold a low torso height and accrue near-zero task return, while our method learns to hop and run and recovers the majority of the oracle's task return despite never observing that reward.</p>
       </div>
       <div class="table-wrap">
