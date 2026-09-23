@@ -102,7 +102,7 @@ figure { margin: 0; }
 .clip .tag { position: absolute; left: 0.6rem; top: 0.6rem; font-family: var(--mono); font-size: 0.7rem; background: var(--ours); color: #fff; padding: 0.25rem 0.5rem; border-radius: 3px; }
 
 /* ---------- Math cards ---------- */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem; }
 .card { background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.3rem; overflow-x: auto; }
 .card.wide { grid-column: 1 / -1; }
 .card .kind { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
@@ -133,6 +133,7 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem 2.5rem; font-s
 
 @media (max-width: 760px) {
   .two-col { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .grid-2 { grid-template-columns: 1fr; }
@@ -238,14 +239,14 @@ footer { border-top: 1px solid var(--line); padding-block: 1.5rem 2.5rem; font-s
 
     <div class="cards">
       <div class="card">
-        <div class="kind"><b>Reward</b> · Equation 6</div>
-        <div class="eq">\[ r(x_t,u_t,S_t) := \ln\det\!\big(S_t + \fx^{\top}\fx\big) \]</div>
-        <p>The reward carries the memory \(S_t\) in its signature, so it is not Markovian in \(x_t\) alone.</p>
-      </div>
-      <div class="card">
         <div class="kind"><b>Memory</b> · Equation 5</div>
         <div class="eq">\[ S_{t+1} = \I - \fx\big(S_t + \fx^{\top}\fx\big)^{-1}\fx^{\top}, \quad S_0 = \I \]</div>
         <p>Bounded as \(0 \preceq S_t \preceq \I\), so it stays well-conditioned as a network input. Only its \(n(n+1)/2\) unique entries are carried.</p>
+      </div>
+      <div class="card">
+        <div class="kind"><b>Reward</b> · Equation 6</div>
+        <div class="eq">\[ r(x_t,u_t,S_t) := \ln\det\!\big(S_t + \fx^{\top}\fx\big) \]</div>
+        <p>The reward carries the memory \(S_t\) in its signature, so it is not Markovian in \(x_t\) alone.</p>
       </div>
       <div class="card wide">
         <div class="kind"><b>Theorem 4</b> · Exact decomposition of CIP</div>
